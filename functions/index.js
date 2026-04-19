@@ -258,9 +258,30 @@ exports.triggerScraper = onCall(
       throw new HttpsError('not-found', `Unknown scraper: ${scraper}`);
     }
 
-    const events  = await fn();
-    const written = await writeEvents(scraper, events);
-    await recordRun(scraper, { total: events.length, written, status: 'ok', error: null });
-    return { total: events.length, written };
+    // Capture console output so it appears in admin panel results
+    const logs = [];
+    const origLog   = console.log;
+    const origError = console.error;
+    const origWarn  = console.warn;
+    const capture   = (...args) => logs.push(args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' '));
+    console.log   = capture;
+    console.error = capture;
+    console.warn  = capture;
+
+    try {
+      const events  = await fn();
+      const written = await writeEvents(scraper, events);
+      await recordRun(scraper, { total: events.length, written, status: 'ok', error: null });
+      return { ok: true, total: events.length, written, logs };
+    } catch (err) {
+      const errorMsg = String(err);
+      await recordRun(scraper, { status: 'error', error: errorMsg }).catch(() => {});
+      logger.error(`${scraper} failed: ${err.stack || err}`);
+      return { ok: false, error: errorMsg, stack: err.stack || '', logs };
+    } finally {
+      console.log   = origLog;
+      console.error = origError;
+      console.warn  = origWarn;
+    }
   }
 );

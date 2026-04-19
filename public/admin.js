@@ -2,7 +2,7 @@ import { initializeApp }           from 'https://www.gstatic.com/firebasejs/10.7
 import { getAuth, signInWithEmailAndPassword, signInWithPopup,
          GoogleAuthProvider, signOut, onAuthStateChanged }
                                    from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { getFirestore, collection, onSnapshot }
+import { getFirestore, collection, onSnapshot, query, where, getDocs, Timestamp }
                                    from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { getFunctions, httpsCallable }
                                    from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
@@ -103,6 +103,7 @@ const runsData = {};
 function startDashboard() {
   buildTable('scrapers-body', SCRAPERS, s => ({ id: s, label: s }));
   buildTable('batches-body',  BATCHES,  b => b);
+  loadThirtyCounts();
 
   // Real-time listener on scraperRuns
   unsubRuns = onSnapshot(collection(db, 'scraperRuns'), snap => {
@@ -118,11 +119,37 @@ function startDashboard() {
     result.textContent = `Running ${id}…`;
     try {
       const res = await triggerScraper({ scraper: id });
-      result.textContent = `✓ ${id}: ${res.data.written} written / ${res.data.total} found`;
+      const d = res.data;
+      if (d.ok === false) {
+        result.innerHTML = renderVerboseResult(d);
+      } else {
+        result.textContent = `✓ ${id}: ${d.written} written / ${d.total} found`;
+      }
     } catch (err) {
       result.textContent = `✗ ${err.message}`;
     }
   });
+}
+
+async function loadThirtyCounts() {
+  const cutoff = Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'events'), where('updatedAt', '>=', cutoff))
+    );
+    const counts = {};
+    snap.forEach(doc => {
+      const src = doc.data().source;
+      if (src) counts[src] = (counts[src] || 0) + 1;
+    });
+    document.querySelectorAll('tr[data-source]').forEach(tr => {
+      const el = tr.querySelector('.cell-thirty');
+      if (el) el.textContent = counts[tr.dataset.source] ?? 0;
+    });
+  } catch (err) {
+    console.error('30-day count failed:', err);
+    document.querySelectorAll('.cell-thirty').forEach(el => { el.textContent = '?'; });
+  }
 }
 
 function buildTable(tbodyId, items, toRow) {
@@ -137,6 +164,7 @@ function buildTable(tbodyId, items, toRow) {
       <td class="cell-status">—</td>
       <td class="cell-time">—</td>
       <td class="cell-written">—</td>
+      <td class="cell-thirty">…</td>
       <td><button class="btn btn-run btn-sm" data-id="${id}">Run</button>
           <div class="run-result cell-result"></div></td>
     `;
@@ -173,6 +201,23 @@ function refreshAllRows() {
   });
 }
 
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function renderVerboseResult(d) {
+  const logHtml = d.logs?.length
+    ? `<details><summary style="cursor:pointer;color:#888;font-size:.75rem">Logs (${d.logs.length})</summary><pre class="run-logs">${escHtml(d.logs.join('\n'))}</pre></details>`
+    : '';
+  const stackHtml = d.stack
+    ? `<details><summary style="cursor:pointer;color:#888;font-size:.75rem">Stack trace</summary><pre class="run-logs">${escHtml(d.stack)}</pre></details>`
+    : '';
+  return `<span class="result-error">✗ ${escHtml(d.error)}</span>${logHtml}${stackHtml}`;
+}
+
 async function runScraper(id, tr) {
   const btn    = tr.querySelector('.btn-run');
   const result = tr.querySelector('.cell-result');
@@ -181,7 +226,12 @@ async function runScraper(id, tr) {
   result.textContent = '';
   try {
     const res = await triggerScraper({ scraper: id });
-    result.textContent = `${res.data.written} written / ${res.data.total} found`;
+    const d = res.data;
+    if (d.ok === false) {
+      result.innerHTML = renderVerboseResult(d);
+    } else {
+      result.textContent = `${d.written} written / ${d.total} found`;
+    }
     // Firestore listener will update the status row automatically
   } catch (err) {
     result.textContent = `✗ ${err.message}`;
