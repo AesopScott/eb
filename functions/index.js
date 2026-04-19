@@ -14,6 +14,7 @@ const { scrapeMicrosoft }    = require('./scrapers/microsoft');
 const { scrape10Times }      = require('./scrapers/10times');
 const { scrapeInfosecConfs } = require('./scrapers/infosecconfs');
 const { scrapeBrave }        = require('./scrapers/brave');
+const { scrapeGoogleSearch } = require('./scrapers/googlesearch');
 const { scrapeVendor }       = require('./lib/vendor-scraper');
 const cyberVendors           = require('./vendors/cyber');
 const aiVendors              = require('./vendors/ai');
@@ -117,6 +118,11 @@ exports.scrapeInfosecConfsDaily = onSchedule(
 exports.scrapeBraveDaily = onSchedule(
   { schedule: 'every 24 hours', timeoutSeconds: 120, memory: '256MiB', secrets: [braveApiKey] },
   () => runScraper('brave', () => scrapeBrave(braveApiKey.value()))
+);
+
+exports.scrapeGoogleSearchDaily = onSchedule(
+  { schedule: 'every 24 hours', timeoutSeconds: 300, memory: '256MiB', secrets: [braveApiKey] },
+  () => runScraper('googlesearch', () => scrapeGoogleSearch(braveApiKey.value()))
 );
 
 // Vendor batch scrapers — silent:true so one failure doesn't abort the batch.
