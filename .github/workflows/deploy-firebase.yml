@@ -44,4 +44,4 @@ jobs:
         run: npm install -g firebase-tools
 
       - name: Deploy functions + firestore
-        run: firebase deploy --only functions,firestore --project eventbuzz-3a58f --non-interactive
+        run: firebase deploy --only functions,firestore --project eventbuzz-3a58f --non-interactive --force
