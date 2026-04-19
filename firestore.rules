@@ -1,0 +1,24 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Events are public read. Writes only from Cloud Functions (Admin SDK
+    // bypasses these rules).
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Scraper run metadata (last-run timestamps, error counts per source).
+    // Not public; readable only via Admin SDK for debugging.
+    match /scraperRuns/{runId} {
+      allow read, write: if false;
+    }
+
+    // Default deny.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
