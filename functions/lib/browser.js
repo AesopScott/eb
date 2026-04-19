@@ -2,11 +2,12 @@ const puppeteer = require('puppeteer-core');
 const chromium  = require('@sparticuz/chromium');
 
 async function withBrowser(fn) {
+  const executablePath = await chromium.executablePath();
   const browser = await puppeteer.launch({
-    args:            chromium.args,
+    args:            [...chromium.args, '--disable-dev-shm-usage'],
     defaultViewport: chromium.defaultViewport,
-    executablePath:  await chromium.executablePath(),
-    headless:        true,
+    executablePath,
+    headless:        chromium.headless,
   });
   try {
     return await fn(browser);
