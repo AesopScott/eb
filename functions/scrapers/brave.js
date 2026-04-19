@@ -52,16 +52,18 @@ function extractLocation(text) {
 
 async function braveSearch(query, apiKey) {
   const url = 'https://api.search.brave.com/res/v1/web/search?' +
-    new URLSearchParams({ q: query, count: '20', search_lang: 'en' });
+    new URLSearchParams({ q: query, count: '10', search_lang: 'en', country: 'us' });
 
   const res = await fetch(url, {
     headers: {
       'Accept':               'application/json',
-      'Accept-Encoding':      'gzip',
-      'X-Subscription-Token': apiKey,
+      'X-Subscription-Token': apiKey.trim(),
     },
   });
-  if (!res.ok) throw new Error(`Brave HTTP ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Brave HTTP ${res.status}: ${body.slice(0, 300)}`);
+  }
   const json = await res.json();
   return json?.web?.results || [];
 }

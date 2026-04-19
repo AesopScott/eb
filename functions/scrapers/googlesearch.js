@@ -50,12 +50,15 @@ async function fetchCity(apiKey, city) {
   const params = new URLSearchParams({ q, count: '10', country: 'us', search_lang: 'en' });
   const res = await fetch(`${BRAVE_URL}?${params}`, {
     headers: {
-      'X-Subscription-Token': apiKey,
+      'X-Subscription-Token': apiKey.trim(),
       'Accept': 'application/json',
     },
   });
   if (res.status === 429) throw new Error('quota exceeded');
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`HTTP ${res.status}: ${body.slice(0, 200)}`);
+  }
   const data = await res.json();
   return (data.web || {}).results || [];
 }
