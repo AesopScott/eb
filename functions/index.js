@@ -3,14 +3,18 @@ const { logger } = require('firebase-functions/v2');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 
-const { scrapeConfsTech } = require('./scrapers/confstech');
-const { scrapeDevpost } = require('./scrapers/devpost');
+const { scrapeConfsTech }  = require('./scrapers/confstech');
+const { scrapeDevpost }    = require('./scrapers/devpost');
 const { scrapeEventbrite } = require('./scrapers/eventbrite');
+const { scrapeMeetup }     = require('./scrapers/meetup');
 
 admin.initializeApp();
 const db = admin.firestore();
 
-const eventbriteKey = defineSecret('EVENTBRITE_API_KEY');
+const eventbriteKey    = defineSecret('EVENTBRITE_API_KEY');
+const meetupClientId   = defineSecret('MEETUP_CLIENT_ID');
+const meetupClientSec  = defineSecret('MEETUP_CLIENT_SECRET');
+const meetupRefreshTok = defineSecret('MEETUP_REFRESH_TOKEN');
 
 function eventId(source, sourceId) {
   return `${source}__${sourceId}`.replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -74,4 +78,16 @@ exports.scrapeDevpostDaily = onSchedule(
 exports.scrapeEventbriteDaily = onSchedule(
   { schedule: 'every 6 hours', timeoutSeconds: 300, memory: '512MiB', secrets: [eventbriteKey] },
   () => runScraper('eventbrite', () => scrapeEventbrite(eventbriteKey.value()))
+);
+
+exports.scrapeMeetupDaily = onSchedule(
+  {
+    schedule: 'every 24 hours',
+    timeoutSeconds: 540,
+    memory: '512MiB',
+    secrets: [meetupClientId, meetupClientSec, meetupRefreshTok],
+  },
+  () => runScraper('meetup', () =>
+    scrapeMeetup(meetupClientId.value(), meetupClientSec.value(), meetupRefreshTok.value())
+  )
 );
