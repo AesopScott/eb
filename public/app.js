@@ -2,11 +2,75 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import {
   getFirestore, collection, query, where, orderBy, limit, getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {
+  getAuth, signInWithEmailAndPassword, signInWithPopup,
+  GoogleAuthProvider, signOut, onAuthStateChanged,
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { firebaseConfig } from "./firebase-config.js";
 import { US_CITIES, WORLD_CITIES } from "./cities-data.js";
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const app  = initializeApp(firebaseConfig);
+const db   = getFirestore(app);
+const auth = getAuth(app);
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+const modal       = document.getElementById('auth-modal');
+const signinBtn   = document.getElementById('signin-btn');
+const signoutBtn  = document.getElementById('signout-btn');
+const userInfo    = document.getElementById('user-info');
+const userAvatar  = document.getElementById('user-avatar');
+const userName    = document.getElementById('user-name');
+const googleBtn   = document.getElementById('google-signin');
+const authForm    = document.getElementById('auth-form');
+const authError   = document.getElementById('auth-error');
+
+signinBtn.addEventListener('click',  () => modal.showModal());
+document.getElementById('modal-close').addEventListener('click', () => modal.close());
+modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
+signoutBtn.addEventListener('click', () => signOut(auth));
+
+googleBtn.addEventListener('click', async () => {
+  authError.textContent = '';
+  try {
+    await signInWithPopup(auth, new GoogleAuthProvider());
+    modal.close();
+  } catch (err) { authError.textContent = friendlyError(err.code); }
+});
+
+authForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  authError.textContent = '';
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    modal.close();
+  } catch (err) { authError.textContent = friendlyError(err.code); }
+});
+
+onAuthStateChanged(auth, user => {
+  if (user) {
+    signinBtn.hidden    = true;
+    userInfo.hidden     = false;
+    userAvatar.src      = user.photoURL || '';
+    userAvatar.hidden   = !user.photoURL;
+    userName.textContent = user.displayName || user.email;
+  } else {
+    signinBtn.hidden = false;
+    userInfo.hidden  = true;
+  }
+});
+
+function friendlyError(code) {
+  return {
+    'auth/invalid-credential':   'Incorrect email or password.',
+    'auth/invalid-email':        'Invalid email address.',
+    'auth/user-not-found':       'No account found.',
+    'auth/wrong-password':       'Incorrect password.',
+    'auth/too-many-requests':    'Too many attempts — try again later.',
+    'auth/popup-closed-by-user': 'Sign-in cancelled.',
+  }[code] || `Error: ${code}`;
+}
 
 // ── State ──────────────────────────────────────────────────────────────────
 const state = {
