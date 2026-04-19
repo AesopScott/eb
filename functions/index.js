@@ -7,8 +7,10 @@ const { scrapeConfsTech }  = require('./scrapers/confstech');
 const { scrapeDevpost }    = require('./scrapers/devpost');
 const { scrapeEventbrite } = require('./scrapers/eventbrite');
 const { scrapeMeetup }     = require('./scrapers/meetup');
-const { scrapeAWS }        = require('./scrapers/aws');
-const { scrapeCNCF }       = require('./scrapers/cncf');
+const { scrapeAWS }          = require('./scrapers/aws');
+const { scrapeCNCF }         = require('./scrapers/cncf');
+const { scrapeGoogleCloud }  = require('./scrapers/googlecloud');
+const { scrapeMicrosoft }    = require('./scrapers/microsoft');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -90,6 +92,16 @@ exports.scrapeAWSDaily = onSchedule(
 exports.scrapeCNCFDaily = onSchedule(
   { schedule: 'every 24 hours', timeoutSeconds: 120, memory: '256MiB' },
   () => runScraper('cncf', scrapeCNCF)
+);
+
+exports.scrapeGoogleCloudDaily = onSchedule(
+  { schedule: 'every 24 hours', timeoutSeconds: 300, memory: '2GiB' },
+  () => runScraper('googlecloud', scrapeGoogleCloud)
+);
+
+exports.scrapeMicrosoftDaily = onSchedule(
+  { schedule: 'every 24 hours', timeoutSeconds: 300, memory: '2GiB' },
+  () => runScraper('microsoft', scrapeMicrosoft)
 );
 
 exports.scrapeMeetupDaily = onSchedule(
