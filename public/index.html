@@ -1,30 +1,102 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark" data-scheme="cyber">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>EventBuzz — Tech events, aggregated</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script>
+    var _v = Date.now();
+    var _l = document.createElement('link');
+    _l.rel = 'stylesheet'; _l.href = '/styles.css?v=' + _v;
+    document.head.appendChild(_l);
+  </script>
 </head>
 <body>
-  <header>
-    <div class="header-inner">
-      <div>
-        <h1>EventBuzz</h1>
-        <p class="tagline">Upcoming technology events, aggregated.</p>
-      </div>
-      <div id="auth-area">
-        <button id="signin-btn" class="btn-auth">Sign In</button>
-        <div id="user-info" hidden>
-          <img id="user-avatar" src="" alt="" width="32" height="32" />
-          <span id="user-name"></span>
-          <button id="signout-btn" class="btn-auth btn-auth-ghost">Sign Out</button>
+
+  <!-- ── Hero ──────────────────────────────────────────────────────────────── -->
+  <header class="hero">
+    <div class="hero-inner">
+
+      <div class="hero-top">
+        <p class="eyebrow">Tech Events Directory</p>
+        <div class="hero-top-right">
+          <span class="version-badge" id="version-badge"></span>
+          <div id="auth-area">
+            <button id="signin-btn" class="btn-auth">Sign In</button>
+            <div id="user-info" hidden>
+              <img id="user-avatar" src="" alt="" width="28" height="28" />
+              <span id="user-name"></span>
+              <button id="signout-btn" class="btn-auth btn-auth-ghost">Sign Out</button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+
+      <h1 class="brand">EventBuzz</h1>
+      <p class="tagline">Upcoming conferences, summits &amp; hackathons — aggregated daily.</p>
+
+      <!-- Tabs + category pills -->
+      <div class="nav-bar">
+        <nav class="tabs" role="tablist" aria-label="Region filter">
+          <button class="tab active" data-tab="US" role="tab">United States</button>
+          <button class="tab" data-tab="World" role="tab">World</button>
+          <button class="tab" data-tab="Online" role="tab">Online</button>
+        </nav>
+        <span class="nav-sep" aria-hidden="true"></span>
+        <nav class="cat-pills" role="group" aria-label="Category filter">
+          <button class="cat-pill active" data-cat="">All</button>
+          <button class="cat-pill" data-cat="AI">AI</button>
+          <button class="cat-pill" data-cat="Cybersecurity">Cybersecurity</button>
+          <button class="cat-pill" data-cat="Developer">Developer</button>
+          <button class="cat-pill" data-cat="IT / Ops">IT / Ops</button>
+          <button class="cat-pill" data-cat="Cloud">Cloud</button>
+          <button class="cat-pill" data-cat="Data">Data</button>
+          <button class="cat-pill" data-cat="General">General</button>
+        </nav>
+      </div>
+
+      <!-- Toolbar: city filter + sort -->
+      <div class="toolbar">
+        <div class="city-dropdown" id="city-dropdown-wrap">
+          <button class="city-dropdown-btn" id="city-dropdown-btn" aria-haspopup="listbox" aria-expanded="false">
+            <svg class="icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.4"/>
+              <path d="m10.5 10.5 2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <span id="city-btn-label">All Cities</span>
+            <span id="city-badge" class="city-badge" hidden></span>
+            <svg class="chevron" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="city-dropdown-panel" id="city-dropdown-panel" hidden role="listbox" aria-multiselectable="true" aria-label="Select cities">
+            <div class="city-search-wrap">
+              <input type="text" id="city-search" placeholder="Search cities…" autocomplete="off" spellcheck="false" />
+            </div>
+            <ul class="city-list" id="city-list"></ul>
+            <div class="city-footer">
+              <button class="city-clear-all" id="city-clear-all" type="button">Clear all</button>
+              <span class="city-count-msg" id="city-count-msg" aria-live="polite"></span>
+            </div>
+          </div>
+        </div>
+
+        <button class="sort-btn" id="sort-btn" type="button" title="Toggle sort order">
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M3 4h7M3 8h5M3 12h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <path d="M12 3v9m0 0-2-2m2 2 2-2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span id="sort-label">Soonest first</span>
+        </button>
+      </div>
+
+    </div><!-- /.hero-inner -->
   </header>
 
-  <!-- Auth modal -->
+  <!-- ── Auth modal ─────────────────────────────────────────────────────────── -->
   <dialog id="auth-modal">
     <div class="modal-inner">
       <button class="modal-close" id="modal-close" aria-label="Close">✕</button>
@@ -48,44 +120,9 @@
     </div>
   </dialog>
 
-  <nav class="tabs" role="tablist">
-    <button class="tab active" data-tab="US" role="tab">United States</button>
-    <button class="tab" data-tab="World" role="tab">World</button>
-    <button class="tab" data-tab="Online" role="tab">Online</button>
-  </nav>
-
-  <div class="filters">
-    <div class="pills" role="group" aria-label="Category filter">
-      <button class="pill active" data-cat="">All</button>
-      <button class="pill" data-cat="AI">AI</button>
-      <button class="pill" data-cat="Cybersecurity">Cybersecurity</button>
-      <button class="pill" data-cat="Developer">Developer</button>
-      <button class="pill" data-cat="IT / Ops">IT / Ops</button>
-      <button class="pill" data-cat="Cloud">Cloud</button>
-      <button class="pill" data-cat="Data">Data</button>
-      <button class="pill" data-cat="General">General</button>
-    </div>
-
-    <div class="city-wrap" id="city-wrap">
-      <div class="city-input-row">
-        <input
-          type="text"
-          id="city-input"
-          placeholder="Search cities…"
-          autocomplete="off"
-          spellcheck="false"
-        />
-        <div id="city-chip" hidden>
-          <span id="city-chip-name"></span>
-          <button id="city-clear" aria-label="Clear city filter">✕</button>
-        </div>
-      </div>
-      <ul id="city-suggestions" class="suggestions" hidden></ul>
-    </div>
-  </div>
-
-  <main>
-    <p id="status" class="status"></p>
+  <!-- ── Feed ──────────────────────────────────────────────────────────────── -->
+  <main class="feed">
+    <p id="status" class="status" aria-live="polite"></p>
     <ul id="events" class="events"></ul>
   </main>
 
@@ -93,6 +130,46 @@
     <small>Sources: Confs.tech · Devpost · Eventbrite · more coming</small>
   </footer>
 
-  <script type="module" src="/app.js"></script>
+  <!-- ── Settings FAB ───────────────────────────────────────────────────────── -->
+  <button class="settings-fab" id="settings-btn" aria-label="Open settings">
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M8.12 2.34a2 2 0 0 1 3.76 0l.18.56a6 6 0 0 1 1.3.75l.57-.17a2 2 0 0 1 2.34 2.66l-.27.53a6 6 0 0 1 0 1.5l.27.53a2 2 0 0 1-2.34 2.66l-.57-.17a6 6 0 0 1-1.3.75l-.18.56a2 2 0 0 1-3.76 0l-.18-.56a6 6 0 0 1-1.3-.75l-.57.17A2 2 0 0 1 3.73 8.77l.27-.53a6 6 0 0 1 0-1.5l-.27-.53A2 2 0 0 1 6.07 3.55l.57.17a6 6 0 0 1 1.3-.75l.18-.56ZM10 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" fill="currentColor"/>
+    </svg>
+  </button>
+
+  <!-- ── Settings panel ─────────────────────────────────────────────────────── -->
+  <div class="settings-overlay" id="settings-overlay"></div>
+  <aside class="settings-panel" id="settings-panel" aria-label="Settings">
+    <div class="settings-hd">
+      <h2>Settings</h2>
+      <button id="settings-close" aria-label="Close settings">✕</button>
+    </div>
+    <section class="settings-section">
+      <h3>Theme</h3>
+      <div class="theme-opts">
+        <button class="theme-opt" data-theme-opt="dark"><span>🌙</span> Dark</button>
+        <button class="theme-opt" data-theme-opt="light"><span>☀️</span> Light</button>
+      </div>
+    </section>
+    <section class="settings-section">
+      <h3>Color Scheme</h3>
+      <div class="scheme-grid">
+        <button class="swatch" data-scheme-opt="cyber"  ><span style="--c:#ffd53f"></span>Cyber</button>
+        <button class="swatch" data-scheme-opt="nebula" ><span style="--c:#a78bfa"></span>Nebula</button>
+        <button class="swatch" data-scheme-opt="matrix" ><span style="--c:#34d399"></span>Matrix</button>
+        <button class="swatch" data-scheme-opt="inferno"><span style="--c:#fb923c"></span>Inferno</button>
+        <button class="swatch" data-scheme-opt="arctic" ><span style="--c:#22d3ee"></span>Arctic</button>
+        <button class="swatch" data-scheme-opt="slate"  ><span style="--c:#60a5fa"></span>Slate</button>
+        <button class="swatch" data-scheme-opt="rose"   ><span style="--c:#f43f5e"></span>Rose</button>
+        <button class="swatch" data-scheme-opt="gold"   ><span style="--c:#f59e0b"></span>Gold</button>
+      </div>
+    </section>
+  </aside>
+
+  <script>
+    var _s = document.createElement('script');
+    _s.type = 'module'; _s.src = '/app.js?v=' + _v;
+    document.body.appendChild(_s);
+  </script>
 </body>
 </html>
