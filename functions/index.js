@@ -1,26 +1,39 @@
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { logger } = require('firebase-functions/v2');
+const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 
 const { scrapeConfsTech } = require('./scrapers/confstech');
+const { scrapeDevpost } = require('./scrapers/devpost');
+const { scrapeEventbrite } = require('./scrapers/eventbrite');
 
 admin.initializeApp();
 const db = admin.firestore();
 
-// Deterministic event id so re-runs upsert instead of duplicating.
+const eventbriteKey = defineSecret('EVENTBRITE_API_KEY');
+
 function eventId(source, sourceId) {
   return `${source}__${sourceId}`.replace(/[^a-zA-Z0-9_-]/g, '_');
 }
 
+// Only write events with a resolved city (or online).
 async function writeEvents(source, events) {
+  const eligible = events.filter(ev => ev.cityKey !== null);
+  if (!eligible.length) return 0;
+
   const now = admin.firestore.FieldValue.serverTimestamp();
-  const batch = db.batch();
-  for (const ev of events) {
-    const id = eventId(source, ev.sourceId);
-    const ref = db.collection('events').doc(id);
-    batch.set(ref, { ...ev, source, fetchedAt: now, updatedAt: now }, { merge: true });
+  // Firestore batch limit is 500.
+  const CHUNK = 400;
+  for (let i = 0; i < eligible.length; i += CHUNK) {
+    const batch = db.batch();
+    for (const ev of eligible.slice(i, i + CHUNK)) {
+      const id = eventId(source, ev.sourceId);
+      const ref = db.collection('events').doc(id);
+      batch.set(ref, { ...ev, source, fetchedAt: now, updatedAt: now }, { merge: true });
+    }
+    await batch.commit();
   }
-  await batch.commit();
+  return eligible.length;
 }
 
 async function recordRun(source, result) {
@@ -31,23 +44,34 @@ async function recordRun(source, result) {
   }, { merge: true });
 }
 
+async function runScraper(source, fn) {
+  try {
+    const events = await fn();
+    const written = await writeEvents(source, events);
+    await recordRun(source, { total: events.length, written, status: 'ok', error: null });
+    logger.info(`${source}: ${written}/${events.length} events written`);
+  } catch (err) {
+    await recordRun(source, { status: 'error', error: String(err) });
+    logger.error(`${source} failed: ${err}`);
+    throw err;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Scheduled scrapers
 // ---------------------------------------------------------------------------
 
 exports.scrapeConfsTechDaily = onSchedule(
   { schedule: 'every 24 hours', timeoutSeconds: 300, memory: '512MiB' },
-  async () => {
-    const source = 'confstech';
-    try {
-      const events = await scrapeConfsTech();
-      await writeEvents(source, events);
-      await recordRun(source, { count: events.length, status: 'ok', error: null });
-      logger.info(`confstech: wrote ${events.length} events`);
-    } catch (err) {
-      await recordRun(source, { status: 'error', error: String(err) });
-      logger.error(`confstech failed: ${err}`);
-      throw err;
-    }
-  }
+  () => runScraper('confstech', scrapeConfsTech)
+);
+
+exports.scrapeDevpostDaily = onSchedule(
+  { schedule: 'every 24 hours', timeoutSeconds: 180, memory: '256MiB' },
+  () => runScraper('devpost', scrapeDevpost)
+);
+
+exports.scrapeEventbriteDaily = onSchedule(
+  { schedule: 'every 6 hours', timeoutSeconds: 300, memory: '512MiB', secrets: [eventbriteKey] },
+  () => runScraper('eventbrite', () => scrapeEventbrite(eventbriteKey.value()))
 );

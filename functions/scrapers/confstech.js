@@ -1,6 +1,6 @@
-// Confs.tech publishes one JSON file per topic per year on GitHub Pages.
-// Full topic list: https://github.com/tech-conferences/conference-data
-// We pull the topics most relevant to EventBuzz.
+const { resolveCity } = require('../lib/cities');
+const { inferCategories } = require('../lib/categories');
+
 const TOPICS = [
   'javascript', 'python', 'ruby', 'golang', 'rust',
   'devops', 'security', 'cloud', 'ai', 'data',
@@ -21,17 +21,31 @@ async function fetchTopicYear(topic, year) {
 }
 
 function normalize(raw, topic) {
+  const locationStr = [raw.city, raw.country].filter(Boolean).join(', ');
+  const isOnline = !!(raw.online || /online|virtual/i.test(locationStr));
+  const city = isOnline
+    ? { cityKey: 'online', cityName: 'Online', countryCode: null }
+    : resolveCity(locationStr);
+
+  const title = raw.name || '';
+  const description = raw.description || '';
+  const tags = [topic, ...(raw.topics || [])];
+
   return {
     sourceId: `${topic}-${raw.startDate}-${(raw.url || raw.name || '').slice(0, 64)}`,
-    title: raw.name,
-    description: raw.description || '',
+    title,
+    description,
     startDate: raw.startDate || '',
     endDate: raw.endDate || raw.startDate || '',
-    location: [raw.city, raw.country].filter(Boolean).join(', '),
+    location: locationStr,
     url: raw.url || '',
-    tags: [topic, ...(raw.topics || [])],
+    tags,
     vendor: '',
-    eventType: raw.online ? 'online' : 'in-person',
+    eventType: isOnline ? 'online' : 'in-person',
+    cityKey: city?.cityKey || null,
+    cityName: city?.cityName || null,
+    countryCode: city?.countryCode || null,
+    categories: inferCategories(title, description, tags),
   };
 }
 
