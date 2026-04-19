@@ -132,7 +132,7 @@ exports.scrapeInfosecConfsDaily = onSchedule(
 exports.scrapeBraveDaily = onSchedule(
   { schedule: 'every 24 hours', timeoutSeconds: 120, memory: '256MiB' },
   async () => {
-    const apiKey = await getSecret('BRAVE_API_KEY');
+    const apiKey = await getSecret('BRAVE_SEARCH_API_KEY');
     return runScraper('brave', () => scrapeBrave(apiKey));
   }
 );
@@ -140,7 +140,7 @@ exports.scrapeBraveDaily = onSchedule(
 exports.scrapeGoogleSearchDaily = onSchedule(
   { schedule: 'every 24 hours', timeoutSeconds: 300, memory: '256MiB' },
   async () => {
-    const apiKey = await getSecret('BRAVE_API_KEY');
+    const apiKey = await getSecret('BRAVE_SEARCH_API_KEY');
     return runScraper('googlesearch', () => scrapeGoogleSearch(apiKey));
   }
 );
@@ -215,8 +215,8 @@ const NAMED_SCRAPERS = {
   '10times':    () => scrape10Times(),
   infosecconfs: () => scrapeInfosecConfs(),
   eventbrite:   async () => scrapeEventbrite(await getSecret('EVENTBRITE_API_KEY')),
-  brave:        async () => scrapeBrave(await getSecret('BRAVE_API_KEY')),
-  googlesearch: async () => scrapeGoogleSearch(await getSecret('BRAVE_API_KEY')),
+  brave:        async () => scrapeBrave(await getSecret('BRAVE_SEARCH_API_KEY')),
+  googlesearch: async () => scrapeGoogleSearch(await getSecret('BRAVE_SEARCH_API_KEY')),
 };
 
 const VENDOR_BATCHES = {
