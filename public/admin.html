@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EventBuzz Admin</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    body { max-width: 960px; margin: 0 auto; padding: 1rem; font-family: system-ui, sans-serif; }
+
+    /* Login */
+    #login-section { max-width: 360px; margin: 4rem auto; }
+    #login-section h2 { margin-bottom: 1.5rem; }
+    .field { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1rem; }
+    .field label { font-size: .85rem; font-weight: 600; }
+    .field input { padding: .5rem .75rem; border: 1px solid #444; border-radius: 6px;
+                   background: #1a1a1a; color: #fff; font-size: 1rem; }
+    .btn { padding: .55rem 1.2rem; border: none; border-radius: 6px; cursor: pointer;
+           font-size: .95rem; font-weight: 600; }
+    .btn-primary { background: #4f6ef7; color: #fff; width: 100%; margin-bottom: .75rem; }
+    .btn-primary:hover { background: #3a57e8; }
+    .btn-google { background: #fff; color: #333; width: 100%; display: flex;
+                  align-items: center; justify-content: center; gap: .6rem; border: 1px solid #ccc; }
+    .btn-google:hover { background: #f5f5f5; }
+    .btn-google svg { width: 18px; height: 18px; }
+    .divider { display: flex; align-items: center; gap: .75rem; margin: 1rem 0; color: #888; font-size: .85rem; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #333; }
+    #login-error { color: #f87171; font-size: .85rem; margin-top: .5rem; min-height: 1.2em; }
+
+    /* Dashboard */
+    #dashboard { display: none; }
+    .admin-header { display: flex; align-items: center; justify-content: space-between;
+                    padding: .75rem 0; border-bottom: 1px solid #333; margin-bottom: 1.5rem; }
+    .admin-header h1 { margin: 0; font-size: 1.4rem; }
+    .btn-sm { padding: .35rem .8rem; font-size: .8rem; border-radius: 5px; }
+    .btn-signout { background: #333; color: #aaa; }
+    .btn-signout:hover { background: #444; }
+
+    .section-title { font-size: .75rem; font-weight: 700; text-transform: uppercase;
+                     letter-spacing: .08em; color: #888; margin: 1.5rem 0 .5rem; }
+
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th { text-align: left; padding: .5rem .75rem; font-size: .75rem; font-weight: 600;
+         text-transform: uppercase; letter-spacing: .06em; color: #888;
+         border-bottom: 1px solid #333; }
+    td { padding: .55rem .75rem; border-bottom: 1px solid #222; vertical-align: middle; }
+    tr:hover td { background: #1a1a1a; }
+
+    .status-ok    { color: #4ade80; }
+    .status-error { color: #f87171; }
+    .status-none  { color: #666; }
+
+    .btn-run { background: #4f6ef7; color: #fff; padding: .3rem .75rem;
+               font-size: .8rem; border-radius: 4px; }
+    .btn-run:hover { background: #3a57e8; }
+    .btn-run:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+    .run-result { font-size: .78rem; color: #888; margin-top: .2rem; }
+
+    .vendor-run-row { display: flex; gap: .5rem; margin-top: 1rem; }
+    .vendor-run-row input { flex: 1; padding: .45rem .75rem; border: 1px solid #444;
+                            border-radius: 6px; background: #1a1a1a; color: #fff; font-size: .9rem; }
+  </style>
+</head>
+<body>
+
+  <!-- Login -->
+  <section id="login-section">
+    <h2>EventBuzz Admin</h2>
+    <form id="login-form">
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" required autocomplete="username" />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" required autocomplete="current-password" />
+      </div>
+      <div id="login-error"></div>
+      <button class="btn btn-primary" type="submit">Sign in</button>
+    </form>
+    <div class="divider">or</div>
+    <button class="btn btn-google" id="google-btn">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Continue with Google
+    </button>
+  </section>
+
+  <!-- Dashboard -->
+  <section id="dashboard">
+    <div class="admin-header">
+      <h1>EventBuzz Admin</h1>
+      <button class="btn btn-sm btn-signout" id="signout-btn">Sign out</button>
+    </div>
+
+    <p class="section-title">Scrapers</p>
+    <table id="scrapers-table">
+      <thead>
+        <tr>
+          <th>Source</th>
+          <th>Status</th>
+          <th>Last Run</th>
+          <th>Written</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="scrapers-body"></tbody>
+    </table>
+
+    <p class="section-title">Vendor Batches</p>
+    <table id="batches-table">
+      <thead>
+        <tr>
+          <th>Batch</th>
+          <th>Status</th>
+          <th>Last Run</th>
+          <th>Written</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="batches-body"></tbody>
+    </table>
+
+    <p class="section-title">Run Individual Vendor</p>
+    <div class="vendor-run-row">
+      <input type="text" id="vendor-id-input" placeholder="e.g. crowdstrike, sentinelone, wiz…" />
+      <button class="btn btn-run" id="vendor-run-btn">Run</button>
+    </div>
+    <div id="vendor-run-result" class="run-result"></div>
+  </section>
+
+  <script type="module" src="/admin.js"></script>
+</body>
+</html>

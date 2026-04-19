@@ -10,10 +10,10 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Scraper run metadata (last-run timestamps, error counts per source).
-    // Not public; readable only via Admin SDK for debugging.
+    // Scraper run metadata — readable by authenticated users (admin panel).
     match /scraperRuns/{runId} {
-      allow read, write: if false;
+      allow read: if request.auth != null;
+      allow write: if false;
     }
 
     // Default deny.

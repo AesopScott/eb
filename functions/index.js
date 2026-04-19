@@ -1,6 +1,7 @@
-const { onSchedule } = require('firebase-functions/v2/scheduler');
-const { logger } = require('firebase-functions/v2');
-const admin = require('firebase-admin');
+const { onSchedule }         = require('firebase-functions/v2/scheduler');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { logger }             = require('firebase-functions/v2');
+const admin                  = require('firebase-admin');
 
 const { scrapeConfsTech }  = require('./scrapers/confstech');
 const { scrapeDevpost }    = require('./scrapers/devpost');
@@ -198,4 +199,68 @@ exports.scrapeGoogleCloudDaily = onSchedule(
 exports.scrapeMicrosoftDaily = onSchedule(
   { schedule: 'every 24 hours', timeoutSeconds: 300, memory: '2GiB' },
   () => runScraper('microsoft', scrapeMicrosoft)
+);
+
+// ---------------------------------------------------------------------------
+// Admin — manually trigger any scraper from the admin panel
+// ---------------------------------------------------------------------------
+
+const NAMED_SCRAPERS = {
+  confstech:    () => scrapeConfsTech(),
+  devpost:      () => scrapeDevpost(),
+  aws:          () => scrapeAWS(),
+  cncf:         () => scrapeCNCF(),
+  googlecloud:  () => scrapeGoogleCloud(),
+  microsoft:    () => scrapeMicrosoft(),
+  '10times':    () => scrape10Times(),
+  infosecconfs: () => scrapeInfosecConfs(),
+  eventbrite:   async () => scrapeEventbrite(await getSecret('EVENTBRITE_API_KEY')),
+  brave:        async () => scrapeBrave(await getSecret('BRAVE_API_KEY')),
+  googlesearch: async () => scrapeGoogleSearch(await getSecret('BRAVE_API_KEY')),
+};
+
+const VENDOR_BATCHES = {
+  'cyber-vendors':  cyberVendors,
+  'ai-vendors':     aiVendors,
+  'cloud-vendors':  cloudVendors,
+  'data-vendors':   dataVendors,
+  'devops-vendors': devopsVendors,
+};
+
+const ALL_VENDORS = [
+  ...cyberVendors, ...aiVendors, ...cloudVendors, ...dataVendors, ...devopsVendors,
+];
+const VENDOR_MAP = Object.fromEntries(ALL_VENDORS.map(v => [v.id, v]));
+
+exports.triggerScraper = onCall(
+  { timeoutSeconds: 540, memory: '2GiB' },
+  async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in required');
+
+    const { scraper } = request.data;
+    if (!scraper) throw new HttpsError('invalid-argument', 'scraper name required');
+
+    let fn;
+    if (NAMED_SCRAPERS[scraper]) {
+      fn = NAMED_SCRAPERS[scraper];
+    } else if (VENDOR_BATCHES[scraper]) {
+      const batch = VENDOR_BATCHES[scraper];
+      fn = async () => {
+        const all = [];
+        for (const config of batch) {
+          try { all.push(...await scrapeVendor(config)); } catch (_) {}
+        }
+        return all;
+      };
+    } else if (VENDOR_MAP[scraper]) {
+      fn = () => scrapeVendor(VENDOR_MAP[scraper]);
+    } else {
+      throw new HttpsError('not-found', `Unknown scraper: ${scraper}`);
+    }
+
+    const events  = await fn();
+    const written = await writeEvents(scraper, events);
+    await recordRun(scraper, { total: events.length, written, status: 'ok', error: null });
+    return { total: events.length, written };
+  }
 );
