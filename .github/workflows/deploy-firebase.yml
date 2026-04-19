@@ -40,6 +40,18 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
+      - name: Grant deploy SA Secret Manager access
+        run: |
+          DEPLOY_SA=$(gcloud config get-value account)
+          echo "Deploy SA: $DEPLOY_SA"
+          for SECRET in EVENTBRITE_API_KEY BRAVE_API_KEY; do
+            gcloud secrets add-iam-policy-binding "$SECRET" \
+              --project=eventbuzz-3a58f \
+              --member="serviceAccount:${DEPLOY_SA}" \
+              --role="roles/secretmanager.secretVersionManager" \
+              --condition=None 2>&1 || echo "Warning: could not grant IAM on $SECRET (may already exist or lack permission)"
+          done
+
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
