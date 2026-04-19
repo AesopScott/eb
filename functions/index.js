@@ -11,11 +11,13 @@ const { scrapeAWS }          = require('./scrapers/aws');
 const { scrapeCNCF }         = require('./scrapers/cncf');
 const { scrapeGoogleCloud }  = require('./scrapers/googlecloud');
 const { scrapeMicrosoft }    = require('./scrapers/microsoft');
+const { scrapeGoogleSearch } = require('./scrapers/googlesearch');
 
 admin.initializeApp();
 const db = admin.firestore();
 
 const eventbriteKey    = defineSecret('EVENTBRITE_API_KEY');
+const braveSearchKey   = defineSecret('BRAVE_SEARCH_API_KEY');
 const meetupClientId   = defineSecret('MEETUP_CLIENT_ID');
 const meetupClientSec  = defineSecret('MEETUP_CLIENT_SECRET');
 const meetupRefreshTok = defineSecret('MEETUP_REFRESH_TOKEN');
@@ -102,6 +104,18 @@ exports.scrapeGoogleCloudDaily = onSchedule(
 exports.scrapeMicrosoftDaily = onSchedule(
   { schedule: 'every 24 hours', timeoutSeconds: 300, memory: '2GiB' },
   () => runScraper('microsoft', scrapeMicrosoft)
+);
+
+exports.scrapeGoogleSearchDaily = onSchedule(
+  {
+    schedule: 'every 24 hours',
+    timeoutSeconds: 300,
+    memory: '256MiB',
+    secrets: [braveSearchKey],
+  },
+  () => runScraper('googlesearch', () =>
+    scrapeGoogleSearch(braveSearchKey.value())
+  )
 );
 
 exports.scrapeMeetupDaily = onSchedule(
