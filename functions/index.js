@@ -7,6 +7,8 @@ const { scrapeConfsTech }  = require('./scrapers/confstech');
 const { scrapeDevpost }    = require('./scrapers/devpost');
 const { scrapeEventbrite } = require('./scrapers/eventbrite');
 const { scrapeMeetup }     = require('./scrapers/meetup');
+const { scrapeAWS }        = require('./scrapers/aws');
+const { scrapeCNCF }       = require('./scrapers/cncf');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -78,6 +80,16 @@ exports.scrapeDevpostDaily = onSchedule(
 exports.scrapeEventbriteDaily = onSchedule(
   { schedule: 'every 6 hours', timeoutSeconds: 300, memory: '512MiB', secrets: [eventbriteKey] },
   () => runScraper('eventbrite', () => scrapeEventbrite(eventbriteKey.value()))
+);
+
+exports.scrapeAWSDaily = onSchedule(
+  { schedule: 'every 6 hours', timeoutSeconds: 120, memory: '256MiB' },
+  () => runScraper('aws', scrapeAWS)
+);
+
+exports.scrapeCNCFDaily = onSchedule(
+  { schedule: 'every 24 hours', timeoutSeconds: 120, memory: '256MiB' },
+  () => runScraper('cncf', scrapeCNCF)
 );
 
 exports.scrapeMeetupDaily = onSchedule(
