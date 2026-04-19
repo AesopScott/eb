@@ -13,6 +13,10 @@ const { scrapeGoogleCloud }  = require('./scrapers/googlecloud');
 const { scrapeMicrosoft }    = require('./scrapers/microsoft');
 const { scrapeVendor }       = require('./lib/vendor-scraper');
 const cyberVendors           = require('./vendors/cyber');
+const aiVendors              = require('./vendors/ai');
+const cloudVendors           = require('./vendors/cloud');
+const dataVendors            = require('./vendors/data');
+const devopsVendors          = require('./vendors/devops');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -101,6 +105,42 @@ exports.scrapeCyberVendorsDaily = onSchedule(
   { schedule: 'every 24 hours', timeoutSeconds: 540, memory: '2GiB' },
   async () => {
     for (const config of cyberVendors) {
+      await runScraper(config.id, () => scrapeVendor(config), { silent: true });
+    }
+  }
+);
+
+exports.scrapeAIVendorsDaily = onSchedule(
+  { schedule: 'every 24 hours', timeoutSeconds: 540, memory: '2GiB' },
+  async () => {
+    for (const config of aiVendors) {
+      await runScraper(config.id, () => scrapeVendor(config), { silent: true });
+    }
+  }
+);
+
+exports.scrapeCloudVendorsDaily = onSchedule(
+  { schedule: 'every 24 hours', timeoutSeconds: 540, memory: '2GiB' },
+  async () => {
+    for (const config of cloudVendors) {
+      await runScraper(config.id, () => scrapeVendor(config), { silent: true });
+    }
+  }
+);
+
+exports.scrapeDataVendorsDaily = onSchedule(
+  { schedule: 'every 24 hours', timeoutSeconds: 540, memory: '2GiB' },
+  async () => {
+    for (const config of dataVendors) {
+      await runScraper(config.id, () => scrapeVendor(config), { silent: true });
+    }
+  }
+);
+
+exports.scrapeDevOpsVendorsDaily = onSchedule(
+  { schedule: 'every 24 hours', timeoutSeconds: 540, memory: '2GiB' },
+  async () => {
+    for (const config of devopsVendors) {
       await runScraper(config.id, () => scrapeVendor(config), { silent: true });
     }
   }
