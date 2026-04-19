@@ -11,13 +11,52 @@
     <h1>EventBuzz</h1>
     <p class="tagline">Upcoming technology events, aggregated.</p>
   </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="US" role="tab">United States</button>
+    <button class="tab" data-tab="World" role="tab">World</button>
+    <button class="tab" data-tab="Online" role="tab">Online</button>
+  </nav>
+
+  <div class="filters">
+    <div class="pills" role="group" aria-label="Category filter">
+      <button class="pill active" data-cat="">All</button>
+      <button class="pill" data-cat="AI">AI</button>
+      <button class="pill" data-cat="Cybersecurity">Cybersecurity</button>
+      <button class="pill" data-cat="Developer">Developer</button>
+      <button class="pill" data-cat="IT / Ops">IT / Ops</button>
+      <button class="pill" data-cat="Cloud">Cloud</button>
+      <button class="pill" data-cat="Data">Data</button>
+      <button class="pill" data-cat="General">General</button>
+    </div>
+
+    <div class="city-wrap" id="city-wrap">
+      <div class="city-input-row">
+        <input
+          type="text"
+          id="city-input"
+          placeholder="Search cities…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <div id="city-chip" hidden>
+          <span id="city-chip-name"></span>
+          <button id="city-clear" aria-label="Clear city filter">✕</button>
+        </div>
+      </div>
+      <ul id="city-suggestions" class="suggestions" hidden></ul>
+    </div>
+  </div>
+
   <main>
-    <div id="status" class="status"></div>
+    <p id="status" class="status"></p>
     <ul id="events" class="events"></ul>
   </main>
+
   <footer>
-    <small>Sources: Confs.tech · more coming</small>
+    <small>Sources: Confs.tech · Devpost · Eventbrite · more coming</small>
   </footer>
+
   <script type="module" src="/app.js"></script>
 </body>
 </html>
