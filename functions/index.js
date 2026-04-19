@@ -11,6 +11,9 @@ const { scrapeAWS }          = require('./scrapers/aws');
 const { scrapeCNCF }         = require('./scrapers/cncf');
 const { scrapeGoogleCloud }  = require('./scrapers/googlecloud');
 const { scrapeMicrosoft }    = require('./scrapers/microsoft');
+const { scrape10Times }      = require('./scrapers/10times');
+const { scrapeInfosecConfs } = require('./scrapers/infosecconfs');
+const { scrapeBrave }        = require('./scrapers/brave');
 const { scrapeVendor }       = require('./lib/vendor-scraper');
 const cyberVendors           = require('./vendors/cyber');
 const aiVendors              = require('./vendors/ai');
@@ -22,6 +25,7 @@ admin.initializeApp();
 const db = admin.firestore();
 
 const eventbriteKey    = defineSecret('EVENTBRITE_API_KEY');
+const braveApiKey      = defineSecret('BRAVE_API_KEY');
 const meetupClientId   = defineSecret('MEETUP_CLIENT_ID');
 const meetupClientSec  = defineSecret('MEETUP_CLIENT_SECRET');
 const meetupRefreshTok = defineSecret('MEETUP_REFRESH_TOKEN');
@@ -98,6 +102,21 @@ exports.scrapeAWSDaily = onSchedule(
 exports.scrapeCNCFDaily = onSchedule(
   { schedule: 'every 24 hours', timeoutSeconds: 120, memory: '256MiB' },
   () => runScraper('cncf', scrapeCNCF)
+);
+
+exports.scrape10TimesDaily = onSchedule(
+  { schedule: 'every 24 hours', timeoutSeconds: 540, memory: '2GiB' },
+  () => runScraper('10times', scrape10Times)
+);
+
+exports.scrapeInfosecConfsDaily = onSchedule(
+  { schedule: 'every 24 hours', timeoutSeconds: 180, memory: '512MiB' },
+  () => runScraper('infosecconfs', scrapeInfosecConfs)
+);
+
+exports.scrapeBraveDaily = onSchedule(
+  { schedule: 'every 24 hours', timeoutSeconds: 120, memory: '256MiB', secrets: [braveApiKey] },
+  () => runScraper('brave', () => scrapeBrave(braveApiKey.value()))
 );
 
 // Vendor batch scrapers — silent:true so one failure doesn't abort the batch.
