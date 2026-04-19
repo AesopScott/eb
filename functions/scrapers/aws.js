@@ -4,13 +4,16 @@ const { inferCategories } = require('../lib/categories');
 const BASE = 'https://aws.amazon.com/api/dirs/items/search';
 
 async function fetchPage(page) {
+  // Filter to events starting from today onward so we don't waste pages on past events.
+  const today = new Date().toISOString().slice(0, 10);
   const params = new URLSearchParams({
-    'item.directoryId': 'aws-events-directory',
-    'sort_by':          'item.additionalFields.startDateTime',
-    'sort_order':       'asc',
-    'size':             '50',
-    'item.locale':      'en_US',
-    'page':             page,
+    'item.directoryId':                              'aws-events-directory',
+    'sort_by':                                       'item.additionalFields.startDateTime',
+    'sort_order':                                    'asc',
+    'size':                                          '50',
+    'item.locale':                                   'en_US',
+    'page':                                          page,
+    'item.additionalFields.startDateTime.range.min': today,
   });
   const res = await fetch(`${BASE}?${params}`, {
     headers: { 'User-Agent': 'EventBuzz/1.0' },
@@ -60,15 +63,21 @@ async function scrapeAWS() {
   while (true) {
     const data  = await fetchPage(page);
     const items = data.items || [];
+    const total = data.metadata?.totalHits ?? 0;
+    console.log(`aws page ${page}: totalHits=${total}, items=${items.length}`);
+    if (page === 1 && items.length > 0) {
+      const f = items[0].item?.additionalFields || {};
+      console.log(`aws first item fields: ${Object.keys(f).join(', ')}`);
+    }
     if (!items.length) break;
     for (const item of items) {
       const ev = normalize(item);
       if (ev.title) out.push(ev);
     }
-    const total = data.metadata?.totalHits ?? 0;
     if (out.length >= total || page >= 10) break;
     page++;
   }
+  console.log(`aws total: ${out.length} events`);
   return out;
 }
 
