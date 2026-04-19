@@ -1,12 +1,10 @@
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { logger } = require('firebase-functions/v2');
-const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 
 const { scrapeConfsTech }  = require('./scrapers/confstech');
 const { scrapeDevpost }    = require('./scrapers/devpost');
 const { scrapeEventbrite } = require('./scrapers/eventbrite');
-const { scrapeMeetup }     = require('./scrapers/meetup');
 const { scrapeAWS }          = require('./scrapers/aws');
 const { scrapeCNCF }         = require('./scrapers/cncf');
 const { scrapeGoogleCloud }  = require('./scrapers/googlecloud');
@@ -17,10 +15,23 @@ const cyberVendors           = require('./vendors/cyber');
 admin.initializeApp();
 const db = admin.firestore();
 
-const eventbriteKey    = defineSecret('EVENTBRITE_API_KEY');
-const meetupClientId   = defineSecret('MEETUP_CLIENT_ID');
-const meetupClientSec  = defineSecret('MEETUP_CLIENT_SECRET');
-const meetupRefreshTok = defineSecret('MEETUP_REFRESH_TOKEN');
+// Fetch a secret from Secret Manager at runtime using the compute SA identity.
+// Avoids deploy-time IAM checks that require the CI service account to have
+// secretmanager.secrets.get — only the runtime compute SA needs secretAccessor.
+async function getSecret(name) {
+  const tokenRes = await fetch(
+    'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token',
+    { headers: { 'Metadata-Flavor': 'Google' } }
+  );
+  const { access_token: token } = await tokenRes.json();
+  const res = await fetch(
+    `https://secretmanager.googleapis.com/v1/projects/eventbuzz-3a58f/secrets/${name}/versions/latest:access`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!res.ok) throw new Error(`Secret ${name}: ${res.status} ${await res.text()}`);
+  const { payload: { data } } = await res.json();
+  return Buffer.from(data, 'base64').toString('utf8');
+}
 
 function eventId(source, sourceId) {
   return `${source}__${sourceId}`.replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -82,8 +93,11 @@ exports.scrapeDevpostDaily = onSchedule(
 );
 
 exports.scrapeEventbriteDaily = onSchedule(
-  { schedule: 'every 6 hours', timeoutSeconds: 300, memory: '512MiB', secrets: [eventbriteKey] },
-  () => runScraper('eventbrite', () => scrapeEventbrite(eventbriteKey.value()))
+  { schedule: 'every 6 hours', timeoutSeconds: 300, memory: '512MiB' },
+  async () => {
+    const apiKey = await getSecret('EVENTBRITE_API_KEY');
+    return runScraper('eventbrite', () => scrapeEventbrite(apiKey));
+  }
 );
 
 exports.scrapeAWSDaily = onSchedule(
@@ -114,16 +128,4 @@ exports.scrapeGoogleCloudDaily = onSchedule(
 exports.scrapeMicrosoftDaily = onSchedule(
   { schedule: 'every 24 hours', timeoutSeconds: 300, memory: '2GiB' },
   () => runScraper('microsoft', scrapeMicrosoft)
-);
-
-exports.scrapeMeetupDaily = onSchedule(
-  {
-    schedule: 'every 24 hours',
-    timeoutSeconds: 540,
-    memory: '512MiB',
-    secrets: [meetupClientId, meetupClientSec, meetupRefreshTok],
-  },
-  () => runScraper('meetup', () =>
-    scrapeMeetup(meetupClientId.value(), meetupClientSec.value(), meetupRefreshTok.value())
-  )
 );
