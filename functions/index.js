@@ -11,6 +11,8 @@ const { scrapeAWS }          = require('./scrapers/aws');
 const { scrapeCNCF }         = require('./scrapers/cncf');
 const { scrapeGoogleCloud }  = require('./scrapers/googlecloud');
 const { scrapeMicrosoft }    = require('./scrapers/microsoft');
+const { scrapeVendor }       = require('./lib/vendor-scraper');
+const cyberVendors           = require('./vendors/cyber');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -52,7 +54,7 @@ async function recordRun(source, result) {
   }, { merge: true });
 }
 
-async function runScraper(source, fn) {
+async function runScraper(source, fn, { silent = false } = {}) {
   try {
     const events = await fn();
     const written = await writeEvents(source, events);
@@ -61,7 +63,7 @@ async function runScraper(source, fn) {
   } catch (err) {
     await recordRun(source, { status: 'error', error: String(err) });
     logger.error(`${source} failed: ${err}`);
-    throw err;
+    if (!silent) throw err;
   }
 }
 
@@ -92,6 +94,16 @@ exports.scrapeAWSDaily = onSchedule(
 exports.scrapeCNCFDaily = onSchedule(
   { schedule: 'every 24 hours', timeoutSeconds: 120, memory: '256MiB' },
   () => runScraper('cncf', scrapeCNCF)
+);
+
+// Vendor batch scrapers — silent:true so one failure doesn't abort the batch.
+exports.scrapeCyberVendorsDaily = onSchedule(
+  { schedule: 'every 24 hours', timeoutSeconds: 540, memory: '2GiB' },
+  async () => {
+    for (const config of cyberVendors) {
+      await runScraper(config.id, () => scrapeVendor(config), { silent: true });
+    }
+  }
 );
 
 exports.scrapeGoogleCloudDaily = onSchedule(
